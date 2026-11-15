@@ -125,6 +125,33 @@ class ReplayTests(unittest.TestCase):
         self.assertIn("tenant", report["evidence_boundaries"]["invalid_or_unapproved"])
         self.assertNotIn("CROSS_TENANT_PAYLOAD_NOT_FOR_OUTPUT", json.dumps(report))
 
+    def test_15a_foreign_tenant_malformed_duplicate_cannot_poison_valid_series(self):
+        before = self.run_report()
+        foreign = copy.deepcopy(fresh_record(self.p, "FAKE-SHP-23-V1"))
+        foreign["tenant_id"] = "tenant-fixture-other"
+        foreign["revision_published_at"] = "INVALID_FOREIGN_TIMESTAMP"
+        repair_excerpt(foreign, "FOREIGN_TENANT_SOURCE_MUST_NEVER_APPEAR")
+        # The record ID is deliberately identical to an allowed local record.
+        self.p["observations"].append(foreign)
+        after = self.run_report()
+        self.assertEqual(after["forecasts"], before["forecasts"])
+        self.assertEqual(after["holdout_metrics"], before["holdout_metrics"])
+        self.assertEqual(after["evidence_boundaries"]["invalid_or_unapproved"]["tenant"], 1)
+        self.assertNotIn("FOREIGN_TENANT_SOURCE_MUST_NEVER_APPEAR", json.dumps(after))
+
+    def test_15b_wrong_entity_invalid_clock_cannot_poison_valid_series(self):
+        before = self.run_report()
+        foreign = copy.deepcopy(fresh_record(self.p, "FAKE-SHP-23-V1"))
+        foreign["entity_id"] = "FAKE-DIFFERENT-ISSUER"
+        foreign["first_published_at"] = "INVALID_OTHER_ENTITY_TIMESTAMP"
+        repair_excerpt(foreign, "OTHER_ENTITY_PRIVATE_SOURCE_TEXT")
+        self.p["observations"].append(foreign)
+        after = self.run_report()
+        self.assertEqual(after["forecasts"], before["forecasts"])
+        self.assertEqual(after["holdout_metrics"], before["holdout_metrics"])
+        self.assertEqual(after["evidence_boundaries"]["invalid_or_unapproved"]["identity"], 1)
+        self.assertNotIn("OTHER_ENTITY_PRIVATE_SOURCE_TEXT", json.dumps(after))
+
     def test_16_unverified_mapping_is_excluded(self):
         r = fresh_record(self.p, "FAKE-SHP-23-V1")
         r["mapping"] = "NAME_MATCH_ONLY"
