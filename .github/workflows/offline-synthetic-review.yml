@@ -1,0 +1,53 @@
+name: HIVE offline synthetic review verification
+
+on:
+  push:
+    branches:
+      - review/offline-company-intel-s1-20261115
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hive-offline-review-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-regression:
+    name: Offline tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.13']
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PIP_DISABLE_PIP_VERSION_CHECK: '1'
+      PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'
+    steps:
+      - name: Checkout review tree (no persistent credentials)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Configure Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install isolated test runner only
+        run: python -m pip install 'pytest>=8,<9'
+      - name: Verify complete offline review and receipts
+        run: bash scripts/verify_offline_review.sh
+      - name: Test exact full repository suite (independent check)
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          HIVE_HOME: ${{ runner.temp }}/hive-regression
+        run: python -m pytest -q --disable-warnings
+
+# No schedule, secrets, writes, external finance data, or deployment steps.
+# This workflow is itself a proposed draft change; passing it is not
+# confirmation of data rights, licensed derivative use, or forecast value.
