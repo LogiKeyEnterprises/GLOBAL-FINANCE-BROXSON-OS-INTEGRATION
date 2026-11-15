@@ -52,3 +52,7 @@ The public upstream declares `license = {text = "Proprietary"}` in `pyproject.to
 2. Ask the applicable rights holder(s) to define written rights for review, modification, commercialization, distribution, and improvements. Obtain appropriate legal review. Do not presume consent from GitHub visibility.
 3. When access and rights are established, test against Tony's *actual* current working tree and the existing evidence-analyzer changes, preserving his local work.
 4. Do not proceed to live data, prediction, subscriptions, or infrastructure expansion from this fixture test.
+
+## S2 follow-on (2026-11-15)
+
+The later S2 additive candidate is documented in `docs/COMPANY_INTELLIGENCE_S2_REVIEW.md` and uses `python3 -m hive.temporal_graph`. The original S1 first-of-kind reader now explicitly rejects temporal/revision packets, and its JSON parser and display labels reject ambiguous or injectable input. These are bounded review-code hardening changes only; inherited Tony HIVE modules remain unchanged. The 26-pass historical S1 result remains a distinct earlier milestone; see S2 for the combined 85-test local receipt and additional blockers. No commercial permission is implied.
