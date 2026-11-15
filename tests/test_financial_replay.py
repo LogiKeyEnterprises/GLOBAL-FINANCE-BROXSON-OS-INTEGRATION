@@ -206,3 +206,33 @@ def test_nonfictional_input_cannot_self_promote_into_live_research():
     out = replay_as_of([x], CUTOFF)
     assert out["selected_count"] == 0
     assert not out["production_accepted"]
+
+
+def test_foreign_tenant_record_does_not_poison_same_identifiers_or_echo_values():
+    secret = sample(tenant_id="ANOTHER-TENANT", source_excerpt="CONFIDENTIAL_DO_NOT_ECHO",
+                    provider="PRIVATE_PROVIDER", source_id="private-secret-id")
+    out = replay_as_of([sample(), secret], CUTOFF)
+    assert out["selected_count"] == 1
+    assert out["blocked_count"] == 1
+    assert "CONFIDENTIAL" not in str(out)
+    assert "PRIVATE_PROVIDER" not in str(out)
+    assert "private-secret-id" not in str(out)
+
+
+def test_foreign_tenant_same_key_cannot_quarantine_valid_event():
+    foreign = sample(tenant_id="OTHER", value=999)
+    out = replay_as_of([sample(), foreign], CUTOFF)
+    assert out["selected_count"] == 1
+    assert out["selected_observations"][0]["value"] == 12
+
+
+def test_unencodable_source_excerpts_fail_closed():
+    out = replay_as_of([sample(source_excerpt="\ud800")], CUTOFF)
+    assert out["selected_count"] == 0
+    assert "SOURCE_HASH_OR_CONTENT_INVALID" in out["decisions"][0]["reasons"]
+
+
+def test_excessive_integer_fails_closed():
+    out = replay_as_of([sample(value=10**100)], CUTOFF)
+    assert out["selected_count"] == 0
+    assert "SHIPMENT_COUNT_OUT_OF_RANGE" in out["decisions"][0]["reasons"]
