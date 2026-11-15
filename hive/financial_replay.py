@@ -39,17 +39,29 @@ def _when(value: Any, reasons: set[str], name: str) -> datetime | None:
 
 
 def _row(record: Any, cutoff: datetime, tenant_id: str) -> dict[str, Any]:
+    # Scope is checked before any field inspection. Foreign/restricted records
+    # have no influence on in-scope groups and no identifiers in the receipt.
+    if not isinstance(record, dict):
+        return {"provider": None, "source_id": None, "record_id": None,
+                "revision_id": None, "selected": False, "eligible": False,
+                "reasons": ["INVALID_RECORD"], "future": False}
+    boundary = set()
+    if record.get("tenant_id") != tenant_id:
+        boundary.add("TENANT_SCOPE_DENIED")
+    if record.get("visibility") != "PUBLIC_SYNTHETIC" or record.get("data_class") != "SYNTHETIC":
+        boundary.add("NON_SYNTHETIC_OR_RESTRICTED_INPUT")
+    if boundary:
+        return {"provider": None, "source_id": None, "record_id": None,
+                "revision_id": None, "selected": False, "eligible": False,
+                "reasons": sorted(boundary), "future": False}
     base = assess(record, cutoff.isoformat())
     reasons = set(base["reasons"])
     decision = {
-        "provider": None, "source_id": base.get("source_id"),
+        "provider": record.get("provider"), "source_id": base.get("source_id"),
         "record_id": base.get("record_id"),
         "revision_id": base.get("revision_id"),
         "selected": False, "eligible": False,
     }
-    if not isinstance(record, dict):
-        return {**decision, "reasons": sorted(reasons), "future": False}
-    decision["provider"] = record.get("provider")
     for field in REQUIRED_EXTRA:
         if field not in record or record[field] is None or record[field] == "":
             reasons.add("MISSING_" + field.upper())
@@ -69,6 +81,8 @@ def _row(record: Any, cutoff: datetime, tenant_id: str) -> dict[str, Any]:
     value = record.get("value")
     if isinstance(value, bool) or not isinstance(value, int) or value < 0:
         reasons.add("SHIPMENT_COUNT_INVALID")
+    elif value > 1_000_000_000_000:
+        reasons.add("SHIPMENT_COUNT_OUT_OF_RANGE")
     number = record.get("revision_number")
     if isinstance(number, bool) or not isinstance(number, int) or number < 1:
         reasons.add("REVISION_NUMBER_INVALID")
@@ -94,9 +108,12 @@ def _row(record: Any, cutoff: datetime, tenant_id: str) -> dict[str, Any]:
 
     content = record.get("source_excerpt")
     sha = record.get("source_excerpt_sha256")
+    try:
+        digest = hashlib.sha256(content.encode("utf-8")).hexdigest() if isinstance(content, str) else None
+    except UnicodeEncodeError:
+        digest = None
     if not (isinstance(content, str) and len(content) <= MAX_SOURCE_CHARS and
-            isinstance(sha, str) and len(sha) == 64 and
-            hashlib.sha256(content.encode("utf-8")).hexdigest() == sha):
+            isinstance(sha, str) and len(sha) == 64 and digest == sha):
         reasons.add("SOURCE_HASH_OR_CONTENT_INVALID")
 
     first = _when(record.get("first_publication_time"), reasons, "first_publication_time")
@@ -147,7 +164,9 @@ def replay_as_of(records: list[Any], cutoff: str, *, tenant_id: str = "SYNTHETIC
     decisions = [_row(row, cutoff_dt, tenant_id) for row in records]
     groups: dict[tuple[str, str, str], list[int]] = defaultdict(list)
     for i, row in enumerate(records):
-        if isinstance(row, dict):
+        if (isinstance(row, dict) and row.get("tenant_id") == tenant_id and
+                row.get("visibility") == "PUBLIC_SYNTHETIC" and
+                row.get("data_class") == "SYNTHETIC"):
             key = (row.get("provider"), row.get("source_id"), row.get("record_id"))
             if all(_nonempty(part) for part in key):
                 groups[key].append(i)
