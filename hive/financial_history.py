@@ -84,7 +84,7 @@ def assess(record: Any, cutoff: str) -> dict[str, Any]:
         except ValueError:
             reasons.append("INVALID_" + field.upper())
             continue
-        if field in ("first_publication_time", "available_as_of") and when > cutoff_dt:
+        if field in ("event_date", "first_publication_time", "available_as_of") and when > cutoff_dt:
             reasons.append("AFTER_PREDICTION_CUTOFF_" + field.upper())
     try:
         first = _utc(record.get("first_publication_time"))

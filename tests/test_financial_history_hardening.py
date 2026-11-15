@@ -117,3 +117,11 @@ def test_rejected_row_cannot_poison_same_identity_in_good_row():
     assert result["eligible"] == 1
     assert "VALUE_INVALID" in result["decisions"][0]["reasons"]
     assert "DUPLICATE_REVISION" not in result["decisions"][1]["reasons"]
+
+
+def test_event_after_cutoff_is_not_admissible_even_if_release_claim_is_backdated():
+    record = fake_record()
+    record["event_date"] = "2026-01-09T00:00:00Z"
+    result = assess(record, CUTOFF)
+    assert result["eligible"] is False
+    assert "AFTER_PREDICTION_CUTOFF_EVENT_DATE" in result["reasons"]
