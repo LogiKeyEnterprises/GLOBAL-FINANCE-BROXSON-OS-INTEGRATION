@@ -35,3 +35,47 @@ The existing GLOBAL_FINANCE_START_HERE.md remains the full mission, provider-can
 Lawfully reusable historical shipment data, independent issuer mappings, publication-time receipts and commercial derivative rights remain BLOCKED/UNKNOWN. Tony's unpublished laptop implementation, independent review, hosted CI and BROXSON acceptance remain unverified. Earlier S1 standalone archive reconciliation remains unresolved. No merge, deployment, live provider calls, spending, scraping, trading, rights transfer or integration with private governance systems is authorized by this test.
 
 Next action: independent review of the exact combined commit and one lawful historical dataset. Stop architecture expansion while those gates remain blocked.
+
+
+## Hosted exact-commit combined CI: 213 tests (2026-11-15)
+
+This is the latest **synthetic engineering verification receipt**, superseding the
+older 185-test local receipt and the historical statement that hosted CI was not
+run. It does **not** supersede any data or licensing restrictions above.
+
+- Review branch: `review/combined-finance-evidence-20261115`
+- Verified implementation commit: `4fb7607ea473150a48b4c6767b24e80575651ab9`
+- Hosted workflow: [GitHub Actions run 43698636902](https://github.com/LogiKeyEnterprises/GLOBAL-FINANCE-BROXSON-OS-INTEGRATION/actions/runs/43698636902)
+- Result: **SUCCESS** on independently installed Python **3.10.22** and **3.13.18**.
+- Each matrix job passed **213/213 tests** in `scripts/verify_offline_review.sh`
+  and independently passed **213/213 tests** in direct full-repository pytest.
+  Synthetic temporal graph and historical-delta receipt assertions passed.
+  The workflow checks that `python3` actually matches its matrix version.
+- Scope: eight inherited HIVE core tests, S1 company and hardening tests,
+  temporal graph tests, 46 synthetic financial forecast/replay tests,
+  separate synthetic financial-history and history-hardening tests,
+  and separate revision-selection replay tests. No private HIVE V2 tests.
+- Proven integration update: the forecast replay's new scope-first filtering and
+  two PR #1 adversarial tests were ported byte-for-byte into this combined
+  PR #3 branch. An out-of-scope tenant or issuer record with a duplicate ID and
+  invalid timestamp cannot poison an in-scope frozen forecast or disclose its
+  synthetic source text.
+- Execution boundary: GitHub-hosted, `contents: read`, exact-PR-SHA checkout,
+  standard runners, no secrets, scheduled tasks, deployments, brokerage hooks
+  or financial provider requests. Python test-runner installation and GitHub
+  checkout still use normal build-time package/network services.
+- Neither the code's locally asserted fixture authorization nor 213 passing
+  tests is a legally validated right, authentic event-publication timestamp,
+  externally proved issuer mapping, real-world causal inference or alpha result.
+
+The historical forecast and revision engines have **different schemas** and
+still lack a licensed real-data interface. Coexistence plus passing regression
+is not evidence of a unified production financial pipeline. BROXSON runtime
+acceptance, Tony's unpublished local working tree, complete IP authorization,
+real longitudinal shipment history and predictive validity remain UNKNOWN or
+BLOCKED. **Keep the PR draft and unmerged**; do not deploy, trade, incur
+charges, share restricted inputs, or imply signed derivative rights.
+
+This document is updated after the verified implementation commit, so GitHub
+will assign this documentation-only edit its own SHA; the latest PR-head status
+must always be read from GitHub Actions before quoting an exact-head result.
