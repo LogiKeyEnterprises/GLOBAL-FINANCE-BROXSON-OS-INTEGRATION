@@ -128,6 +128,15 @@ def _validate_records(packet: dict[str, Any]) -> tuple[dict[tuple[str, str], lis
     for r in obs:
         if not isinstance(r, dict):
             raise ReplayBoundaryError("Observation must be object")
+        # Scope before content: untrusted foreign tenant/entity rows must not
+        # influence duplicate checks, clocks, hash validation or revision chains.
+        # Count exclusions without returning source IDs, text or foreign claims.
+        if r.get("tenant_id") != packet["tenant_id"]:
+            blocked["tenant"] += 1
+            continue
+        if r.get("entity_id") != packet["entity_id"]:
+            blocked["identity"] += 1
+            continue
         rid = r.get("record_id")
         if not isinstance(rid, str) or not rid.startswith("FAKE-") or rid in seen:
             raise ReplayBoundaryError("Duplicate or non-fictional record ID")
