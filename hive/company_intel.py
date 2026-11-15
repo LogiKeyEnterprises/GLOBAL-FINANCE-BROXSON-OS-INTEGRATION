@@ -8,15 +8,36 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 
-VERSION = "0.1.0-review"
+VERSION = "0.1.1-review"
 PROVIDERS = (
     "ImportYeti", "ZoomInfo", "DataForB2B", "Global Database",
     "Company Dossier", "Legal Data Hunter", "CourtListener",
 )
 ACCEPTED_RIGHTS = {"SYNTHETIC_ONLY"}
+SAFE_LABEL = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 _.,:/()'-]{0,95}$")
+
+
+def _safe_label(value: object, label: str) -> str:
+    if not isinstance(value, str) or not SAFE_LABEL.fullmatch(value):
+        raise ReviewBoundaryError(f"Invalid {label}; unsafe or unbounded text")
+    return value
+
+
+def _no_duplicate_keys(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ReviewBoundaryError("Duplicate JSON key prohibited")
+        result[key] = value
+    return result
+
+
+def _reject_nonfinite(value):
+    raise ReviewBoundaryError("Nonfinite JSON values prohibited")
 
 
 class ReviewBoundaryError(ValueError):
@@ -36,8 +57,8 @@ def aware_time(value: str) -> datetime:
 
 
 def _integer(value: object, name: str) -> int:
-    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
-        raise ReviewBoundaryError(f"{name} must be a nonnegative integer")
+    if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 10**15:
+        raise ReviewBoundaryError(f"{name} must be a bounded nonnegative integer")
     return value
 
 
@@ -46,7 +67,10 @@ def load_fixture(path: str | Path) -> tuple[dict, str]:
     if len(raw) > 1_000_000:
         raise ReviewBoundaryError("Fixture is too large")
     try:
-        fixture = json.loads(raw)
+        fixture = json.loads(raw, object_pairs_hook=_no_duplicate_keys,
+                             parse_constant=_reject_nonfinite)
+    except ReviewBoundaryError:
+        raise
     except (ValueError, UnicodeError) as exc:
         raise ReviewBoundaryError("Invalid UTF-8 JSON fixture") from exc
     if not isinstance(fixture, dict) or fixture.get("synthetic") is not True:
@@ -65,19 +89,26 @@ def evaluate_fixture(fixture: dict, *, fixture_sha256: str = "UNPINNED") -> dict
     entity = fixture.get("entity")
     if not isinstance(tenant, str) or not tenant.startswith("tenant-fixture-"):
         raise ReviewBoundaryError("Only fictional tenant IDs are accepted")
+    _safe_label(tenant, "fixture tenant")
     if not isinstance(entity, dict):
         raise ReviewBoundaryError("No target entity")
     registry_id = entity.get("registry_id")
     jurisdiction = entity.get("jurisdiction")
     if not isinstance(registry_id, str) or not registry_id.startswith("FAKE-"):
         raise ReviewBoundaryError("Nonfictional registered identifiers are prohibited")
-    if not isinstance(jurisdiction, str) or not jurisdiction:
-        raise ReviewBoundaryError("Jurisdiction required")
-    if not isinstance(entity.get("name"), str) or not entity.get("name"):
-        raise ReviewBoundaryError("Fictional entity name required")
+    _safe_label(registry_id, "registry ID")
+    _safe_label(jurisdiction, "jurisdiction")
+    _safe_label(entity.get("name"), "fictional entity name")
     records = fixture.get("records")
     if not isinstance(records, list):
         raise ReviewBoundaryError("Records must be a list")
+    # The S1 first-of-kind reader cannot safely adjudicate revisions or
+    # first-availability timestamps: use the S2 temporal engine instead.
+    if "graph_entities" in fixture or any(
+        isinstance(r, dict) and ("first_available_at" in r or "revision_of" in r)
+        for r in records
+    ):
+        raise ReviewBoundaryError("Temporal evidence requires hive.temporal_graph")
 
     evidence = []
     excluded = {"other_identity": 0, "other_tenant": 0, "restricted": 0,
@@ -102,20 +133,23 @@ def evaluate_fixture(fixture: dict, *, fixture_sha256: str = "UNPINNED") -> dict
             excluded["future"] += 1
             continue
         price = rec.get("cost_usd")
-        if (rec.get("usage_rights") not in ACCEPTED_RIGHTS
+        usage_rights = rec.get("usage_rights")
+        if (not isinstance(usage_rights, str) or usage_rights not in ACCEPTED_RIGHTS
                 or isinstance(price, bool) or price != 0):
             excluded["rights_or_cost"] += 1
             continue
         source_id = rec.get("source_id")
         root_id = rec.get("root_id")
-        if (not isinstance(source_id, str) or not source_id
-                or not isinstance(root_id, str) or not root_id):
-            raise ReviewBoundaryError("Source and original root required")
+        _safe_label(source_id, "source ID")
+        _safe_label(root_id, "original root")
         if source_id in accepted_ids:
             raise ReviewBoundaryError("Duplicate source ID")
         accepted_ids.add(source_id)
-        if rec.get("kind") in {"registry", "filed_financials", "vendor_estimate",
-                               "shipments", "docket", "legislation"}:
+        if isinstance(rec.get("kind"), str) and rec["kind"] in {
+                "registry", "filed_financials", "vendor_estimate", "shipments",
+                "docket", "legislation"}:
+            if not isinstance(rec.get("value"), dict):
+                raise ReviewBoundaryError("Accepted claim value must be an object")
             roots.add(root_id)
         evidence.append(rec)
 
@@ -136,19 +170,19 @@ def evaluate_fixture(fixture: dict, *, fixture_sha256: str = "UNPINNED") -> dict
     claims = []
     if reg:
         claims.append({"type": "registered_status", "source": link(reg),
-                       "value": reg.get("value", {}).get("status", "UNKNOWN"),
+                       "value": _safe_label(reg.get("value", {}).get("status", "UNKNOWN"), "registry status"),
                        "truth_class": "RECORDED_IN_FIXTURE"})
     if filing:
         raw = filing.get("value", {})
         amount = _integer(raw.get("revenue_usd"), "filed revenue")
         claims.append({"type": "filed_revenue", "source": link(filing),
-                       "amount_usd": amount, "period": raw.get("period", "UNKNOWN"),
+                       "amount_usd": amount, "period": _safe_label(raw.get("period", "UNKNOWN"), "financial period"),
                        "truth_class": "RECORDED_IN_FIXTURE"})
     if estimate:
         raw = estimate.get("value", {})
         amount = _integer(raw.get("revenue_estimate_usd"), "revenue estimate")
         claims.append({"type": "vendor_revenue_estimate", "source": link(estimate),
-                       "amount_usd": amount, "period": raw.get("period", "UNKNOWN"),
+                       "amount_usd": amount, "period": _safe_label(raw.get("period", "UNKNOWN"), "financial period"),
                        "truth_class": "CONTEXTUAL_IN_FIXTURE"})
     if shipments:
         raw = shipments.get("value", {})
@@ -156,8 +190,8 @@ def evaluate_fixture(fixture: dict, *, fixture_sha256: str = "UNPINNED") -> dict
         customs_value = _integer(raw.get("declared_customs_value_usd"), "customs value")
         claims.append({"type": "shipment_activity", "source": link(shipments),
                        "count": count, "customs_value_usd": customs_value,
-                       "period": raw.get("period", "UNKNOWN"),
-                       "supplier": raw.get("supplier", "UNKNOWN"),
+                       "period": _safe_label(raw.get("period", "UNKNOWN"), "shipment period"),
+                       "supplier": _safe_label(raw.get("supplier", "UNKNOWN"), "supplier label"),
                        "supplier_dependency_verified": False,
                        "revenue_implied": False, "truth_class": "RECORDED_IN_FIXTURE"})
     if docket:
@@ -166,12 +200,12 @@ def evaluate_fixture(fixture: dict, *, fixture_sha256: str = "UNPINNED") -> dict
                        "allegation_filed": raw.get("allegation_filed") is True,
                        "dismissed": raw.get("dismissed") is True,
                        "adverse_judgment": raw.get("adverse_judgment") is True,
-                       "case_id": raw.get("case_id", "UNKNOWN"),
+                       "case_id": _safe_label(raw.get("case_id", "UNKNOWN"), "case ID"),
                        "truth_class": "RECORDED_IN_FIXTURE"})
     if law:
         raw = law.get("value", {})
         claims.append({"type": "regulatory_proposal", "source": link(law),
-                       "status": raw.get("status", "UNKNOWN"),
+                       "status": _safe_label(raw.get("status", "UNKNOWN"), "regulation status"),
                        "effective": raw.get("status") == "ENACTED_EFFECTIVE",
                        "truth_class": "RECORDED_IN_FIXTURE"})
 
