@@ -50,4 +50,28 @@ assert any(row['source_id']=='S-02' for row in delta['claims_removed_or_supersed
 assert delta['receipt']['external_writes']==0
 print('S2 synthetic snapshot and historical-delta receipts verified. Zero external actions; licensing blocked.')
 PY
-printf 'DONE: offline test harness and S2 receipt passed. No production merge or deployment.\n'
+# S3 is deliberately non-joinable on the two unchanged synthetic fixtures.
+# Fail closed and preserve only a sanitized reason code, not mixed-tenant data.
+if [ -f fixtures/economic_replay_synthetic.json ]; then
+    status=0
+    python3 -m hive.evidence_bridge \
+      --graph fixtures/cedar_arc_temporal.json \
+      --replay fixtures/economic_replay_synthetic.json \
+      > "$scratch/bridge-denial.json" || status=$?
+    if [ "$status" -ne 3 ]; then
+        printf 'BLOCKED: S3 cross-tenant bridge did not return rejection code 3.\n' >&2
+        exit 4
+    fi
+    python3 - "$scratch/bridge-denial.json" <<'PYBRIDGE'
+import json,sys
+from pathlib import Path
+v=json.loads(Path(sys.argv[1]).read_text())
+assert v['state']=='BLOCKED'
+assert v['reason']=='CROSS_TENANT_DENIED'
+assert v['graph_or_replay_inspected'] is False
+assert v['joined_claims']==[]
+assert v['receipt']['commercial_authority']=='NOT_GRANTED'
+print('S3 synthetic cross-tenant no-join receipt verified.')
+PYBRIDGE
+fi
+printf 'DONE: offline test harness and S2/S3 receipts passed. No production merge or deployment.\n'

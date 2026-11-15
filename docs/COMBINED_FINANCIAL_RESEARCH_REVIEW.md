@@ -79,3 +79,33 @@ charges, share restricted inputs, or imply signed derivative rights.
 This document is updated after the verified implementation commit, so GitHub
 will assign this documentation-only edit its own SHA; the latest PR-head status
 must always be read from GitHub Actions before quoting an exact-head result.
+
+
+## S3 point-in-time graph-to-forecast proof bridge (synthetic-only)
+
+This additive bridge is taken byte-for-byte from independently tested
+[PR #1 S3 source commit](https://github.com/LogiKeyEnterprises/GLOBAL-FINANCE-BROXSON-OS-INTEGRATION/commit/2d76ddaaf69c8df5cc817bae8ee8d59bcd0e1597).
+The independent PR #1 S3 hosted CI passed **159 tests** on both Python 3.10
+and 3.13, including the two graph/financial-replay cases omitted from the
+earlier isolated local proof. That receipt belongs to PR #1 and is not the
+new combined PR #3 exact-head acceptance result.
+
+- `hive/evidence_bridge.py` is an **optional read-only evidence alignment
+  adapter**, not a new forecast model or governance layer.
+- `tests/test_evidence_bridge.py` adds adversarial no-join, exact
+  tenant/entity identity, date-causality, source-root documentary-cut and
+  snapshot-reconstruction tests to the existing combined test discovery.
+- The existing review script now additionally checks the S3 CLI's expected
+  **cross-tenant rejection exit 3** on the unchanged pair of fictional
+  fixtures, without echoing foreign source text.
+- As-of provenance is recomputed at **each historical forecast cutoff**;
+  a later graph snapshot must never appear as earlier support. Even aligned
+  fixture identities mean only **parallel documentary association**;
+  `source_to_model_feature_mapping = NOT_IMPLEMENTED`, causal/predictive
+  advantage `NOT_ESTABLISHED` and commercial authority `NOT_GRANTED`.
+- S3 does **not** bridge the distinct financial-revision selector into the
+  financial forecast input schema, and does not certify external rights,
+  publication vintages, original-root independence or entity mappings.
+
+The combined PR #3 CI must be checked on its **new head SHA** after this
+commit. Keep PRs draft; do not merge, trade, deploy or spend.
