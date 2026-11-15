@@ -109,3 +109,12 @@ new combined PR #3 exact-head acceptance result.
 
 The combined PR #3 CI must be checked on its **new head SHA** after this
 commit. Keep PRs draft; do not merge, trade, deploy or spend.
+
+
+## Current S3 acceptance and supplied source-document consolidation
+
+Pinned combined implementation: 5ffee209cc821e162583daa1aa3c72008b8049df. The exact-head [hosted run 43698944305](https://github.com/LogiKeyEnterprises/GLOBAL-FINANCE-BROXSON-OS-INTEGRATION/actions/runs/43698944305) succeeded on Python 3.10 and 3.13. A local fresh checkout also passed **241 tests**, graph/delta receipt checks and S3 cross-tenant no-join checks. This supersedes older current-status test counts; they remain historical receipts. Distinct cases: 213 pre-S3 + 28 S3 = 241, not a sum of overlapping PR counts.
+
+[Source-document digest and acceptance gates](SOURCE_DOCUMENT_EVIDENCE_DIGEST.md) consolidates the three owner-supplied PDF sources, their SHA-256 fingerprints, Phase Zero baseline contract, source-inspection findings, falsification evidence, historical-clock requirements, unexecuted IP boundaries and the next data gate. Raw private PDFs, contact details, private source URLs and private technical archives are deliberately excluded from the public repository. This documentation-only addition changes no executable files or inherited HIVE code. Its new commit requires its own CI status; the 241 result above remains pinned to the implementation commit.
+
+All rights, real-data, Tony-build compatibility and independent acceptance gates remain unchanged. BROXSON/LogiKey/ARKHIVE/AI Network OS external runtime integration is not established. Keep draft; no merge or deployment.
