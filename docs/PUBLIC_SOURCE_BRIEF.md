@@ -8,6 +8,8 @@ whose restrictions are unchanged (each reader rejects the other's input).
 Packets live in `public_sources/`, not `fixtures/`, so real observations are never
 presented as fictional fixtures.
 
+Worked example: [Walmart FY2026 public-source case](cases/WALMART_PUBLIC_SOURCE_CASE.md).
+
 ## What it enforces
 - `synthetic: false`, `mode: OFFLINE_ONLY`, method `MANUAL_TRANSCRIPTION_FROM_CITED_SOURCE`;
   `automatically_retrieved` and `machine_verified` must be `false` (no self-promotion).
