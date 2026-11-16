@@ -148,7 +148,7 @@ def evaluate_packet(packet: dict, *, packet_sha256: str = "UNPINNED") -> dict:
         url_cik, url_acc = EDGAR_URL.fullmatch(url).groups()
         if int(url_cik) != int(cik) or url_acc != accession.replace("-", ""):
             raise ReviewBoundaryError("Source URL does not match the filer CIK and accession")
-        if s["form"] not in FORMS:
+        if not isinstance(s["form"], str) or s["form"] not in FORMS:
             raise ReviewBoundaryError("Unsupported filing form")
         publication = s["publication_time"]
         if publication is not None:
@@ -182,11 +182,11 @@ def evaluate_packet(packet: dict, *, packet_sha256: str = "UNPINNED") -> dict:
             raise ReviewBoundaryError("Observation cites no listed source (missing provenance)")
         if o["entity_cik"] != cik:
             raise ReviewBoundaryError("Observation entity CIK does not match the target entity")
-        if o["metric"] not in METRICS:
+        if not isinstance(o["metric"], str) or o["metric"] not in METRICS:
             raise ReviewBoundaryError("Unsupported metric")
-        if o["unit"] != "USD":
+        if not isinstance(o["unit"], str) or o["unit"] != "USD":
             raise ReviewBoundaryError("Unsupported or missing unit")
-        if o["scale"] not in SCALES:
+        if not isinstance(o["scale"], str) or o["scale"] not in SCALES:
             raise ReviewBoundaryError("Unsupported or missing scale")
         value = o["value"]
         if isinstance(value, bool) or not isinstance(value, int) or abs(value) > 10**15:

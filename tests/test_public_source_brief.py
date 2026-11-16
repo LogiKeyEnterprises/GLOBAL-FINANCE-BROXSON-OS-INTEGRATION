@@ -324,3 +324,38 @@ def test_reader_never_touches_network(monkeypatch):
     monkeypatch.setattr(socket, "socket", deny)
     monkeypatch.setattr(socket, "create_connection", deny)
     render_markdown(evaluate_packet(packet()))
+
+
+# --- Malformed (non-string) values for membership-checked fields ------------
+
+@pytest.mark.parametrize("bad", [["10-K"], {"form": "10-K"}], ids=["list", "object"])
+def test_non_string_form_rejected_cleanly(bad):
+    p = packet(); p["sources"][0]["form"] = bad
+    with pytest.raises(ReviewBoundaryError, match="Unsupported filing form"):
+        evaluate_packet(p)
+
+
+@pytest.mark.parametrize("field,msg", [
+    ("metric", "Unsupported metric"), ("unit", "unit"), ("scale", "scale"),
+])
+@pytest.mark.parametrize("bad", [["x"], {"k": "v"}], ids=["list", "object"])
+def test_non_string_observation_fields_rejected_cleanly(field, msg, bad):
+    p = packet(); obs(p, "total_revenues")[field] = bad
+    with pytest.raises(ReviewBoundaryError, match=msg):
+        evaluate_packet(p)
+
+
+@pytest.mark.parametrize("where,field", [
+    ("source", "form"), ("obs", "metric"), ("obs", "unit"), ("obs", "scale"),
+])
+def test_cli_reports_malformed_field_without_traceback(tmp_path, capsys, where, field):
+    p = packet()
+    target = p["sources"][0] if where == "source" else obs(p, "total_revenues")
+    target[field] = ["malformed"]
+    f = tmp_path / "bad.json"
+    f.write_text(json.dumps(p))
+    with pytest.raises(SystemExit) as exc:
+        main(["--packet", str(f)])
+    assert exc.value.code == 2
+    err = capsys.readouterr().err
+    assert "error:" in err and "Traceback" not in err and "TypeError" not in err
