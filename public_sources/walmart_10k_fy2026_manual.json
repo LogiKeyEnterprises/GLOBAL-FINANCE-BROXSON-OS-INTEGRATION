@@ -1,0 +1,38 @@
+{
+  "packet_kind": "MANUAL_PUBLIC_SOURCE_TRANSCRIPTION",
+  "schema_version": "1",
+  "synthetic": false,
+  "mode": "OFFLINE_ONLY",
+  "packet_created_at": "2026-11-16T02:12:41Z",
+  "transcription": {
+    "method": "MANUAL_TRANSCRIPTION_FROM_CITED_SOURCE",
+    "automatically_retrieved": false,
+    "machine_verified": false,
+    "transcriber_note": "Values curated by the operator from the cited 10-K, not fetched by HIVE"
+  },
+  "entity": {
+    "name": "Walmart Inc.",
+    "sec_cik": "0000104169",
+    "incorporation": "Delaware"
+  },
+  "sources": [
+    {
+      "source_id": "SRC-01",
+      "root_id": "ROOT-SEC-EDGAR-0000104169-26-000055",
+      "publisher": "U.S. SEC EDGAR",
+      "url": "https://www.sec.gov/Archives/edgar/data/104169/000010416926000055/wmt-20260131.htm",
+      "form": "10-K",
+      "accession": "0000104169-26-000055",
+      "filer_cik": "0000104169",
+      "fiscal_period_end": "2026-01-31",
+      "publication_time": null,
+      "source_sha256": null
+    }
+  ],
+  "observations": [
+    {"observation_id": "OBS-01", "source_id": "SRC-01", "entity_cik": "0000104169", "metric": "total_revenues", "value": 713163, "unit": "USD", "scale": "millions", "period_end": "2026-01-31", "period_type": "FISCAL_YEAR"},
+    {"observation_id": "OBS-02", "source_id": "SRC-01", "entity_cik": "0000104169", "metric": "net_sales", "value": 706413, "unit": "USD", "scale": "millions", "period_end": "2026-01-31", "period_type": "FISCAL_YEAR"},
+    {"observation_id": "OBS-03", "source_id": "SRC-01", "entity_cik": "0000104169", "metric": "membership_and_other_income", "value": 6750, "unit": "USD", "scale": "millions", "period_end": "2026-01-31", "period_type": "FISCAL_YEAR"},
+    {"observation_id": "OBS-04", "source_id": "SRC-01", "entity_cik": "0000104169", "metric": "net_income_attributable_to_parent", "value": 21893, "unit": "USD", "scale": "millions", "period_end": "2026-01-31", "period_type": "FISCAL_YEAR"}
+  ]
+}
